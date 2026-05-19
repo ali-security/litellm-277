@@ -3477,6 +3477,38 @@ def hash_token(token: str):
     return hashed_token
 
 
+def hash_password(password: str) -> str:
+    """Hash a password using scrypt with a random salt."""
+    import base64
+    import hashlib
+    import os
+
+    salt = os.urandom(16)
+    dk = hashlib.scrypt(password.encode(), salt=salt, n=16384, r=8, p=1, dklen=32)
+    return "scrypt:" + base64.b64encode(salt + dk).decode()
+
+
+def verify_password(password: str, stored: str) -> bool:
+    """Verify a password against a stored hash. Supports scrypt and SHA256."""
+    import base64
+    import hashlib
+    import secrets
+
+    if stored.startswith("scrypt:"):
+        try:
+            raw = base64.b64decode(stored[7:])
+            salt, dk = raw[:16], raw[16:]
+            dk2 = hashlib.scrypt(password.encode(), salt=salt, n=16384, r=8, p=1, dklen=32)
+            return secrets.compare_digest(dk, dk2)
+        except Exception:
+            return False
+    if len(stored) == 64 and all(c in "0123456789abcdef" for c in stored):
+        return secrets.compare_digest(
+            hashlib.sha256(password.encode()).hexdigest().encode(), stored.encode()
+        )
+    return False
+
+
 def _hash_token_if_needed(token: str) -> str:
     """
     Hash the token if it's a string and starts with "sk-"

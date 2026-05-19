@@ -1046,6 +1046,13 @@ CLOUDZERO_EXPORT_INTERVAL_MINUTES = int(
     os.getenv("CLOUDZERO_EXPORT_INTERVAL_MINUTES", 60)
 )
 MCP_TOOL_NAME_PREFIX = "mcp_tool"
+
+_MCP_STDIO_EXTRA_COMMANDS = os.getenv("LITELLM_MCP_STDIO_EXTRA_COMMANDS", "")
+MCP_STDIO_ALLOWED_COMMANDS: frozenset = frozenset(
+    {"npx", "uvx", "python", "python3", "node", "docker", "deno"}
+    | (set(_MCP_STDIO_EXTRA_COMMANDS.split(",")) - {""})
+)
+
 MAXIMUM_TRACEBACK_LINES_TO_LOG = int(os.getenv("MAXIMUM_TRACEBACK_LINES_TO_LOG", 100))
 
 # Headers to control callbacks

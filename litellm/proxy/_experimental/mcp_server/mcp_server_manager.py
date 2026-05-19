@@ -691,6 +691,16 @@ class MCPServerManager:
 
         # Handle stdio transport
         if transport == MCPTransport.stdio:
+            if server.command:
+                import os as _os
+                from litellm.constants import MCP_STDIO_ALLOWED_COMMANDS
+                base_command = _os.path.basename(server.command)
+                if base_command not in MCP_STDIO_ALLOWED_COMMANDS:
+                    raise HTTPException(
+                        status_code=403,
+                        detail=f"MCP stdio command '{server.command}' is not in the allowlist ({sorted(MCP_STDIO_ALLOWED_COMMANDS)}). "
+                        f"Add it to LITELLM_MCP_STDIO_EXTRA_COMMANDS to allow this command.",
+                    )
             # For stdio, we need to get the stdio config from the server
             stdio_config: Optional[MCPStdioConfig] = None
             if server.command and server.args is not None:

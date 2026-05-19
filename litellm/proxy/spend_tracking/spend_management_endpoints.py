@@ -106,13 +106,19 @@ async def spend_user_fn(
             user_info = await prisma_client.get_data(
                 table_name="user", query_type="find_unique", user_id=user_id
             )
-            return [user_info]
+            result = [user_info]
         else:
             user_info = await prisma_client.get_data(
                 table_name="user", query_type="find_all"
             )
+            result = user_info
 
-        return user_info
+        for user in result if isinstance(result, list) else [result]:
+            if user and hasattr(user, "__dict__"):
+                user.__dict__.pop("password", None)
+            elif isinstance(user, dict):
+                user.pop("password", None)
+        return result
 
     except Exception as e:
         raise HTTPException(

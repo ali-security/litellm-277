@@ -36,7 +36,7 @@ from litellm.proxy.management_endpoints.key_management_endpoints import (
     prepare_metadata_fields,
 )
 from litellm.proxy.management_helpers.utils import management_endpoint_wrapper
-from litellm.proxy.utils import handle_exception_on_proxy
+from litellm.proxy.utils import handle_exception_on_proxy, hash_password
 from litellm.types.proxy.management_endpoints.common_daily_activity import (
     SpendAnalyticsPaginatedResponse,
 )
@@ -415,6 +415,8 @@ async def new_user(
 
         data_json = data.json()  # type: ignore
         data_json = _update_internal_new_user_params(data_json, data)
+        if "password" in data_json and data_json["password"] is not None:
+            data_json["password"] = hash_password(data_json["password"])
         teams = data.teams
         if teams is None:
             teams = check_if_default_team_set()
@@ -685,6 +687,8 @@ async def user_info(
         _user_info = (
             user_info.model_dump() if isinstance(user_info, BaseModel) else user_info
         )
+        if isinstance(_user_info, dict):
+            _user_info.pop("password", None)
         response_data = UserInfoResponse(
             user_id=user_id, user_info=_user_info, keys=returned_keys, teams=team_list
         )

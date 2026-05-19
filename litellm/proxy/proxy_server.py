@@ -8855,9 +8855,10 @@ async def claim_onboarding_link(data: InvitationClaim):
             },
         )
     ### UPDATE USER OBJECT ###
-    hash_password = hash_token(token=data.password)
+    from litellm.proxy.utils import hash_password as _hash_password
+    hashed_pw = _hash_password(data.password)
     user_obj = await prisma_client.db.litellm_usertable.update(
-        where={"user_id": invite_obj.user_id}, data={"password": hash_password}
+        where={"user_id": invite_obj.user_id}, data={"password": hashed_pw}
     )
 
     if user_obj is None:
@@ -8865,6 +8866,8 @@ async def claim_onboarding_link(data: InvitationClaim):
             status_code=401, detail={"error": "User does not exist in db."}
         )
 
+    if user_obj and hasattr(user_obj, "__dict__"):
+        user_obj.__dict__.pop("password", None)
     return user_obj
 
 
@@ -9150,7 +9153,7 @@ async def invitation_delete(
     dependencies=[Depends(user_api_key_auth)],
     include_in_schema=False,
 )
-async def update_config(config_info: ConfigYAML):  # noqa: PLR0915
+async def update_config(config_info: ConfigYAML, user_api_key_dict: UserAPIKeyAuth = Depends(user_api_key_auth)):  # noqa: PLR0915
     """
     For Admin UI - allows admin to update config via UI
 
@@ -9158,6 +9161,8 @@ async def update_config(config_info: ConfigYAML):  # noqa: PLR0915
     """
     global llm_router, llm_model_list, general_settings, proxy_config, proxy_logging_obj, master_key, prisma_client
     try:
+        if user_api_key_dict.user_role != LitellmUserRoles.PROXY_ADMIN:
+            raise HTTPException(status_code=403, detail="Only proxy admins can update config")
         import base64
 
         """

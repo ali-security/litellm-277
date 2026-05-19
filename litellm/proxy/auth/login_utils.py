@@ -29,7 +29,7 @@ from litellm.proxy.management_endpoints.key_management_endpoints import (
 from litellm.proxy.management_endpoints.ui_sso import (
     get_disabled_non_admin_personal_key_creation,
 )
-from litellm.proxy.utils import PrismaClient, get_server_root_path
+from litellm.proxy.utils import PrismaClient, get_server_root_path, verify_password
 from litellm.secret_managers.main import get_secret_bool
 from litellm.types.proxy.ui_sso import ReturnedUITokenObject
 
@@ -254,11 +254,7 @@ async def authenticate_user(
                 code=401,
             )
 
-        # check if password == _user_row.password
-        hash_password = hash_token(token=password)
-        if secrets.compare_digest(password, _password) or secrets.compare_digest(
-            hash_password, _password
-        ):
+        if verify_password(password, _password):
             if os.getenv("DATABASE_URL") is not None:
                 response = await generate_key_helper_fn(
                     request_type="key",

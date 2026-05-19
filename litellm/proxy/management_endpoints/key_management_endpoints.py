@@ -1098,6 +1098,12 @@ async def generate_key_fn(
             route=KeyManagementRoutes.KEY_GENERATE,
         )
 
+        if data.allowed_routes and user_api_key_dict.user_role != LitellmUserRoles.PROXY_ADMIN.value:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail={"error": "Only proxy admins can set `allowed_routes` on a key. Use `key_type` to pick a preset route bucket instead."},
+            )
+
         if team_table is not None:
             await _check_team_key_limits(
                 team_table=team_table,

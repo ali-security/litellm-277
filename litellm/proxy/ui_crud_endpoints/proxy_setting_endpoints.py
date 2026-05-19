@@ -1,6 +1,7 @@
 #### CRUD ENDPOINTS for UI Settings #####
 import json
 from typing import Any, Dict, List, Union, Optional
+from urllib.parse import urlparse
 
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
 
@@ -640,6 +641,21 @@ async def update_ui_theme_settings(theme_config: UIThemeConfig):
     """
     from litellm.proxy.proxy_server import proxy_config, store_model_in_db
     import os
+
+    def _validate_public_image_url(value, field_name):
+        if value is None:
+            return
+        if not isinstance(value, str) or not value.strip():
+            return
+        parsed = urlparse(value.strip())
+        if parsed.scheme not in ("http", "https") or not parsed.netloc:
+            raise HTTPException(
+                status_code=400,
+                detail={"error": f"Invalid {field_name}: must be an http(s) URL with a host."},
+            )
+
+    _validate_public_image_url(getattr(theme_config, "logo_url", None), "logo_url")
+    _validate_public_image_url(getattr(theme_config, "favicon_url", None), "favicon_url")
 
     if store_model_in_db is not True:
         raise HTTPException(
